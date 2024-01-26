@@ -1,0 +1,20 @@
+[tool.poetry]
+name = "frc-2024-field-server"
+version = "0.1.0"
+description = "Field server for the FIRST Robotics competition"
+authors = ["Mark T. Tomczak <iam@fixermark.com>"]
+license = "ISC"
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.10"
+telnetlib3 = "^2.0.4"
+
+[tool.poetry.group.dev.dependencies]
+isort = "^5.0.0"
+flake8 = "^7.0.0"
+mypy = "^1.8.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
