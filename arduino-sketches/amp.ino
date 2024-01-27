@@ -61,9 +61,9 @@
 
 /// Remote connection configs
 
-byte mac[] = {0x10, 0x10, 0x11, 0x11, 0x12, 0x12};
-IPAddress my_ip(10,0,1,2);
-IPAddress field_server_ip(10,0,1,1);
+
+const IPAddress field_server_ip(10,0,1,1);
+const int server_port = 8008;
 
 class TextBuffer {
 private:
@@ -95,12 +95,56 @@ public:
 #if 0  // 1 = Ethernet, 0 = Serial fake
 
 class EthernetComms {
+  private:
+    TextBuffer m_buffer;
+    EthernetClient m_client;
+    IPAddress m_field_server_ip;
+    int m_port;
+    bool m_connected;
 
+  public:
+    EthernetComms(
+      const byte* mac,
+      const IPAddress& my_ip,
+      const IPAddress& field_server_ip,
+      const int port):
+      m_buffer(), m_client(), m_field_server_ip(field_server_ip), m_port(port), m_connected(false) {
+        Ethernet.begin(mac, my_ip);
+      }
+
+
+
+    // Return true if connection successful, false otherwise
+    bool connect() {
+      return m_client.connect(m_field_server_ip, m_port);
+    }
+
+    char* input() {
+      for (char c = m_client.read(); c != -1; c = m_client.read()) {
+        char *buffer = m_buffer.input(c);
+        if (buffer != nullptr) {
+          return buffer;
+        }
+      }
+      return nullptr;
+    }
+
+    void write(char* out) {
+
+      for (size_t cursor = 0; out[cursor] != '\0' && cursor < 80; ++cursor) {
+        m_client.write(out[cursor]);
+      }
+      m_client.flush();
+    }
+
+    bool connected() {
+      return m_client.connected();
+    }
 };
 
 using Comms = EthernetComms;
 
-#else // serial fake
+#else // serial fake for Ethernet
 
 class SerialComms {
 private:
@@ -110,12 +154,26 @@ public:
   SerialComms(
     const byte* mac,
     const IPAddress& my_ip,
-    const IPAddress& field_server_ip) {
-    Serial.begin(9600);
+    const IPAddress& field_server_ip,
+    const int port) {
+      Serial.begin(9600);
+      Serial.print("mac: ");
+      for (size_t i = 0; i < 6; ++i) {
+        Serial.print(mac[i], HEX);
+        Serial.print(" ");
+      }
+      Serial.println("");
+      Serial.print("my ip: ");
+      Serial.println(my_ip);
   }
 
   ~SerialComms() {
     Serial.end();
+  }
+
+  // Connection protocol. Does nothing for SerialComms except return true for success.
+  bool connect() {
+    return true;
   }
 
   char* input() {
@@ -195,6 +253,55 @@ AmpState g_amp_state = {false, false, false ,false, false,
 
 Comms* g_comms;
 
+// Configure mac address based on the alliance string.
+// On return, mac_address is populated with new address.
+// NOTE: mac_address should be a 6-byte array.
+//
+// MAC val last byte is
+// - RA: 0x03
+// - RS: 0x02
+// - BA: 0x01
+// - BS: 0x00
+void select_mac(const char* alliance_string, byte* mac_address) {
+  byte mac_val = 0x00;
+
+  if (alliance_string[0] == 'R') {
+    mac_val += 0x02;
+  }
+
+  if (alliance_string[1] == 'A') {
+    mac_val += 0x01;
+  }
+
+  mac_address[0] = 0x10;
+  mac_address[1] = 0x10;
+  mac_address[2] = 0x11;
+  mac_address[3] = 0x11;
+  mac_address[4] = 0x12;
+  mac_address[5] = mac_val;
+}
+
+// Generate an IP address for this client based on alliance string.
+//
+// IP address last octet is
+// - RA: 113
+// - RS: 112
+// - BA: 111
+// - BS: 110
+IPAddress select_client_ip(const char* alliance_string) {
+  int last_octet = 110;
+
+  if (alliance_string[0] == 'R') {
+    last_octet += 2;
+  }
+
+  if (alliance_string[1] == 'A') {
+    last_octet += 1;
+  }
+
+  return IPAddress(10,0,1,last_octet);
+}
+
 void setup() {
   pinMode(ALLIANCE_LIGHT_LOW_PIN, OUTPUT);
   pinMode(ALLIANCE_LIGHT_HIGH_PIN, OUTPUT);
@@ -209,11 +316,16 @@ void setup() {
   digitalWrite(ALLIANCE_LIGHT_HIGH_PIN, LOW);
   digitalWrite(COOPERTITION_LIGHT_PIN, LOW);
 
-  // TODO: we should have an establish connection handshake function that can successfully
-  // negotiate a connection so that if we lose connection we can restore it
-  g_comms = new Comms(mac, my_ip, field_server_ip);
 
   auto msg = digitalRead(ALLIANCE_SELECTION_PIN) == HIGH ? "BA\r\n" : "RA\r\n";
+  byte mac[6];
+
+  select_mac(msg, mac);
+  auto my_ip = select_client_ip(msg);
+
+  // TODO: we should have an establish connection handshake function that can successfully
+  // negotiate a connection so that if we lose connection we can restore it
+  g_comms = new Comms(mac, my_ip, field_server_ip, server_port);
   g_comms->write(msg);
 
   char* input = g_comms->input();
