@@ -8,9 +8,11 @@ logger = logging.getLogger(__name__)
 from frc_2024_field_server.clients import Clients
 from frc_2024_field_server.game.state import GameState
 from frc_2024_field_server.game.loop import game_loop
+from frc_2024_field_server.ui import UI
 
 state = GameState()
 clients = Clients()
+ui = UI(clients, state)
 
 async def server(reader, writer):
     while True:
@@ -34,6 +36,7 @@ def run() -> None:
     loop = asyncio.get_event_loop()
 
     loop.create_task(game_loop(state, clients))
+    loop.create_task(ui.update())
     loop.run_until_complete(
         telnetlib3.run_server(port=args.port, host=args.host, shell=clients.new_connection_shell))
 

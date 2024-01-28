@@ -35,7 +35,8 @@
 /// = outbound to server
 /// - A: alliance button pressed
 /// - C: coopertition button pressed
-/// - R: Ring sensor tripped
+/// - RA: Ring sensor tripped
+/// - RS: Override button pressed to score a ring in the speaker
 ///
 /// = inbound from server
 /// - L0, L1: alliance low light off or on
@@ -52,6 +53,7 @@
 #define COOPERTITION_BUTTON 8
 #define NOTE_SENSOR 6
 #define ALLIANCE_SELECTION_PIN 5
+#define MANUAL_SPEAKER_SCORING 4
 
 #define ALLIANCE_LIGHT_BLINK_PERIOD_MSEC 500
 #define COOPERTITION_LIGHT_BLINK_PERIOD_MSEC 1000
@@ -246,6 +248,7 @@ struct AmpState {
   DebouncingMomentary alliance_button;
   DebouncingMomentary coopertition_button;
   DebouncingMomentary note_sensor;
+  DebouncingMomentary manual_speaker_score;
 };
 
 AmpState g_amp_state = {false, false, false ,false, false,
@@ -311,6 +314,7 @@ void setup() {
   pinMode(COOPERTITION_BUTTON, INPUT);
   pinMode(NOTE_SENSOR, INPUT);
   pinMode(ALLIANCE_SELECTION_PIN, INPUT);
+  pinMode(MANUAL_SPEAKER_SCORING, INPUT);
 
   digitalWrite(ALLIANCE_LIGHT_LOW_PIN, LOW);
   digitalWrite(ALLIANCE_LIGHT_HIGH_PIN, LOW);
@@ -356,10 +360,6 @@ bool update_lit_state(char val) {
 
 void loop() {
   unsigned long current_time = millis();
-  char out_buffer[4];
-  out_buffer[1]='\r';
-  out_buffer[2]='\n';
-  out_buffer[3]='\0';
 
   // update light state
   digitalWrite(ALLIANCE_LIGHT_LOW_PIN, g_amp_state.low_light_lit);
@@ -379,23 +379,25 @@ void loop() {
   auto alliance_button = digitalRead(ALLIANCE_BUTTON);
   auto coopertition_button = digitalRead(COOPERTITION_BUTTON);
   auto note_sensor = digitalRead(NOTE_SENSOR);
+  auto manual_speaker = digitalRead(MANUAL_SPEAKER_SCORING);
 
   auto alliance_button_hit = g_amp_state.alliance_button.update_state(current_time, alliance_button);
   auto coopertition_button_hit = g_amp_state.coopertition_button.update_state(current_time, coopertition_button);
   auto note_sensor_triggered = g_amp_state.note_sensor.update_state(current_time, note_sensor);
+  auto manual_speaker_score_triggered = g_amp_state.manual_speaker_score.update_state(current_time, manual_speaker);
 
   // Communicate button state to server.
   if (alliance_button_hit) {
-    out_buffer[0] = 'A';
-    g_comms->write(out_buffer);
+    g_comms->write("A\r\n");
   }
   if (coopertition_button_hit) {
-    out_buffer[0] = 'C';
-    g_comms->write(out_buffer);
+    g_comms->write("C\r\n");
   }
   if (note_sensor_triggered) {
-    out_buffer[0] = 'R';
-    g_comms->write(out_buffer);
+    g_comms->write("RA\r\n");
+  }
+  if (manual_speaker_score_triggered) {
+    g_comms->write("RS\r\n");
   }
 
   // Read light state from the server
