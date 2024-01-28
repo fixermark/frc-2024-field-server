@@ -3,6 +3,7 @@
 import asyncio
 from tkinter import Tk, RIDGE
 from tkinter import ttk
+from tkinter.font import Font
 from frc_2024_field_server.clients import Clients
 from frc_2024_field_server.client import Client
 from frc_2024_field_server.message_receiver import Alliance, FieldElement
@@ -17,29 +18,38 @@ MODE_TO_NAME: Final = {
     Mode.TELEOP: 'Teleop',
 }
 
-
 class UI:
     def __init__(self, clients: Clients, state: GameState):
         self._clients = clients
         self._state = state
+
         self._root = Tk()
         self._root.title("Crescendo Field Server")
+        self._root.grid_columnconfigure(0, weight=1)
+        self._root.grid_rowconfigure(0, weight=1)
         # TODO: root should not be closeable
-
         self._root.bind("<space>", self.handle_keypress)
 
-        # setup styles
-        self._no_connection_style = ttk.Style()
-        self._no_connection_style.configure("connection_off.TLabel", background="#ff9999")
+        # Setup fonts
+        self._category_font = Font(size=24)
+        self._score_font = Font(size=48)
 
-        self._connection_style = ttk.Style()
-        self._connection_style.configure("connection_on.TLabel", background="#99ff99")
+        # setup styles
+        self._styles = [
+            ttk.Style().configure("connection_off.TLabel", background="#ff9999"),
+            ttk.Style().configure("connection_on.TLabel", background="#99ff99"),
+        ]
 
         self._topframe = ttk.Frame(self._root, padding=10)
-        self._topframe.grid(row = 0, column = 0, sticky="n,w,s,e")
+        self._topframe.grid(row = 0, column = 0, sticky="nwse")
+        self._topframe.grid_columnconfigure(0, weight=1)
 
         self._connections = ttk.Frame(self._topframe, padding=5)
-        self._connections.grid(row=0, column = 0, sticky="n,w,e")
+        self._connections.grid(row=0, column = 0, sticky="nwe")
+        self._connections.grid_columnconfigure(0, weight=1)
+        self._connections.grid_columnconfigure(1, weight=1)
+        self._connections.grid_rowconfigure(0, weight=1)
+        self._connections.grid_rowconfigure(1, weight=1)
 
         self._red_speaker_connection = self._init_connection(self._connections, 0, 0, "Red Speaker")
         self._blue_speaker_connection = self._init_connection(self._connections, 0, 1, "Blue Speaker")
@@ -47,19 +57,22 @@ class UI:
         self._blue_amp_connection = self._init_connection(self._connections, 1, 1, "Blue Amp")
 
         self._scores = ttk.Frame(self._topframe, padding=5)
-        self._scores.grid(row=1, column=0, sticky="w,e")
+        self._scores.grid(row=1, column=0, sticky="we")
+        self._scores.grid_columnconfigure(0, weight=1)
+        self._scores.grid_columnconfigure(1, weight=1)
 
         self._red_score_label = self._init_score(self._scores, 0, "Red Alliance")
         self._blue_score_label = self._init_score(self._scores, 1, "Blue Alliance")
 
         time_frame = ttk.Frame(self._topframe, padding=5)
-        time_frame.grid(row=2, column=0, sticky="w,e,s")
+        time_frame.grid(row=2, column=0, sticky="wes")
+        time_frame.grid_columnconfigure(0, weight=1)
 
-        self._time_mode_label = ttk.Label(time_frame, padding=5, text="Setup")
-        self._time_mode_label.grid(row=0, column=0, sticky="w,e,n")
+        self._time_mode_label = ttk.Label(time_frame, padding=5, text="Setup", font=self._category_font, justify="center")
+        self._time_mode_label.grid(row=0, column=0)
 
-        self._time_count_label = ttk.Label(time_frame, padding=5, text="0.0")
-        self._time_count_label.grid(row=1, column=0, sticky="w,e,s")
+        self._time_count_label = ttk.Label(time_frame, padding=5, text="0.0", font=self._score_font, justify="center")
+        self._time_count_label.grid(row=1, column=0)
 
 
     def handle_keypress(self, _)-> None:
@@ -70,7 +83,7 @@ class UI:
     def _init_connection(self, parent: ttk.Frame, row: int, column: int, label: str) -> ttk.Label:
         """Add a connection status panel in the specified location and return it."""
         label_widget = ttk.Label(parent, text=label, padding=10, relief=RIDGE, borderwidth=5)
-        label_widget.grid(row=row, column=column, sticky="N,W,S,E")
+        label_widget.grid(row=row, column=column, sticky="nwse")
         return label_widget
 
     def _init_score(self, parent: ttk.Frame, column: int, label: str) -> ttk.Label:
@@ -85,14 +98,14 @@ class UI:
           The value label that can be updated to show score.
         """
         score_frame = ttk.Frame(parent, padding=5)
-        score_frame.grid(row=0, column=column, sticky="n,w,s,e")
+        score_frame.grid(row=0, column=column)
+        score_frame.grid_columnconfigure(0, weight=1)
 
-        top_label = ttk.Label(score_frame, text=label)
-        # TODO: center
-        top_label.grid(row=0, column=0, sticky="N")
+        top_label = ttk.Label(score_frame, text=label, font=self._category_font, justify="center")
+        top_label.grid(row=0, column=0)
 
-        value_label = ttk.Label(score_frame, text="0")
-        value_label.grid(row=1, column=0, sticky="S")
+        value_label = ttk.Label(score_frame, text="0", font=self._score_font, justify="center")
+        value_label.grid(row=1, column=0)
         return value_label
 
     async def update(self):
