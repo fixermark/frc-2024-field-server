@@ -1,4 +1,4 @@
-b# FRC 2024 field logic server
+# FRC 2024 field logic server
 
 # Requirements
 * Tk (for field server user interface). In Ubuntu, this can be installed by
