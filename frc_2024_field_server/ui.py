@@ -112,7 +112,7 @@ class UI:
         """Run an update on the UI to allow for repaints and events."""
         while True:
             self._update_connection_states(self._clients)
-
+            self._update_scores(self._state)
             self._update_mode_and_time(self._state)
 
             self._root.update()
@@ -130,6 +130,10 @@ class UI:
         """Set the color of a connection label based on connection status."""
         label.config(style="connection_off.TLabel" if client is None else "connection_on.TLabel")
 
+    def _update_scores(self, state: GameState) -> None:
+        """Update the score displays."""
+        self._red_score_label.config(text=state.alliances[Alliance.RED].score)
+        self._blue_score_label.config(text=state.alliances[Alliance.BLUE].score)
 
     def _update_mode_and_time(self, state: GameState) -> None:
         """Update the current time remaining and the current game mode."""

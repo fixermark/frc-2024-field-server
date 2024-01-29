@@ -3,6 +3,7 @@ from frc_2024_field_server.game.clients import new_client
 from frc_2024_field_server.message_receiver import Alliance, FieldElement, Message, Receiver
 from dataclasses import dataclass
 import logging
+from telnetlib3 import TelnetReader, TelnetWriter
 
 """Collection of all clients and communicatoin tools to interact with them."""
 
@@ -24,7 +25,7 @@ class Clients(Receiver):
         """Connect a client to the set of clients."""
         self.clients[alliance][element] = client
 
-    async def new_connection_shell(self, reader, writer) -> None:
+    async def new_connection_shell(self, reader: TelnetReader, writer: TelnetWriter) -> None:
         """Telnet-style shell handler for new clients."""
 
         inp = await reader.readline()
@@ -81,3 +82,19 @@ class Clients(Receiver):
     def receive_message(self, alliance: Alliance, element: FieldElement, message:Message):
         """Receive and enqueue a message."""
         self._messages.append(ClientMessage(alliance, element, message))
+
+    async def output(self, alliance: Alliance, element: FieldElement, message: str) -> None:
+        """Outputs a message to the specified client.
+
+        Args:
+          alliance: Which alliance to send message to.
+          element: Which field element on that alliance to send message to.
+          message: Message to send, *without* \\r\\n suffix.
+        """
+
+        client = self.clients[alliance][element]
+        if client is None:
+            logger.error("Unable to send %s to %s, %s: no client connected.", message, alliance, element)
+            return
+
+        await client.output(message)

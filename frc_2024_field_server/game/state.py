@@ -8,7 +8,7 @@ from typing import Final
 logger = logging.getLogger(__name__)
 
 AUTON_PERIOD_NS: Final[int] = 15_000_000_000
-TELEOP_PERIOD_NS: Final[int] = 120_000_000_000
+TELEOP_PERIOD_NS: Final[int] = 135_000_000_000
 
 """State of game."""
 
@@ -16,11 +16,12 @@ class GameState:
     """State of the entire game."""
 
     def __init__(self):
+        self.cur_time_ns:int = 0
         self.mode_end_ns:int = 0
         self.current_mode = Mode.SETUP
         self.alliances = (AllianceState(), AllianceState())
 
-    def check_mode_progression(self, current_time_ns: int) -> None:
+    def check_mode_progression(self) -> None:
         """Check if mode should progress and move it forward if it should."""
         next_mode: Mode | None = None
 
@@ -32,7 +33,7 @@ class GameState:
         if next_mode is None:
             return
 
-        if current_time_ns > self.mode_end_ns:
+        if self.cur_time_ns > self.mode_end_ns:
             self.current_mode = next_mode
             self.mode_end_ns = 0
 
@@ -67,6 +68,9 @@ class GameState:
 
         return self.mode_end_ns - current_ns
 
+    def game_active(self) -> bool:
+        """Return true if the game is in an active state (autonomous or teleop)."""
+        return self.current_mode in [Mode.AUTONOMOUS, Mode.TELEOP]
 
 class AllianceState:
     """State of a single alliance."""
@@ -74,9 +78,11 @@ class AllianceState:
     def __init__(self):
         self.score = 0
         self.amp_end_ms = 0  # if nonzero, time in match that the amp will wrap up.
+        self.banked_notes = 0
 
     def start_round(self) -> None:
         """Init state for start of round."""
         self.score = 0
         self.amp_end_ns = 0
+        self.banked_notes = 0
 

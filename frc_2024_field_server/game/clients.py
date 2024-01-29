@@ -9,7 +9,13 @@ class UnknownClientException(Exception):
 class AmpClient(Client):
     def handle_input(self, inp: str) -> None:
         if inp[0] == "R":
-            self.send_message(Score())
+            if inp[1] == "A":
+                self.send_message(Score(FieldElement.AMP))
+            elif inp[1] == "S":
+                self.send_message(Score(FieldElement.SPEAKER))
+            else:
+                self.report_unknown_input(inp)
+                return
         elif inp[0] == "A":
             self.send_message(AmpButtonPressed())
         elif inp[0] == "C":
@@ -18,9 +24,15 @@ class AmpClient(Client):
             self.report_unknown_input(inp)
 
 class SpeakerClient(Client):
-    def handle_input(self, inp: str) -> None:
+    def handle_input(self, inp: bytes) -> None:
         if inp[0] == "R":
-            self.send_message(Score())
+            if inp[1] == "A":
+                self.send_message(Score(FieldElement.AMP))
+            elif inp[1] == "S":
+                self.send_message(Score(FieldElement.SPEAKER))
+            else:
+                self.report_unknown_input(inp)
+                return
         else:
             self.report_unknown_input(inp)
 
