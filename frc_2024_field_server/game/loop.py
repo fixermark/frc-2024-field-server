@@ -4,7 +4,7 @@ import asyncio
 import logging
 import time
 from frc_2024_field_server.game import actions
-from frc_2024_field_server.game.messages import Score
+from frc_2024_field_server.game.messages import Score, AmpButtonPressed
 from frc_2024_field_server.game.state import GameState
 from frc_2024_field_server.clients import Clients, ClientMessage
 from frc_2024_field_server.message_receiver import Alliance, FieldElement
@@ -30,19 +30,34 @@ async def process_messages(state: GameState, clients: Clients, msgs: list[Client
                 await actions.score_amp_note(state, clients, msg.alliance)
             else:
                 await actions.score_speaker_note(state, clients, msg.alliance)
+        elif isinstance(msg.message, AmpButtonPressed):
+            alliance = state.alliances[msg.alliance]
+            if alliance.amp_end_ns == 0 and alliance.banked_notes == 2:
+                await actions.activate_amp(state, clients, msg.alliance)
 
+async def update_amp_timer(state: GameState, clients: Clients, alliance: Alliance) -> None:
+    """Update amp timer, if running."""
+    alliance_fields = state.alliances[alliance]
+    if alliance_fields.amp_end_ns == 0:
+        return
+    if state.cur_time_ns > alliance_fields.amp_end_ns:
+        await actions.end_amp_time(state, clients, alliance)
 
 
 async def game_loop(state: GameState, clients: Clients) -> None:
-        """The main loop of the game. Runs continuously until game is completed."""
-        while True:
-            state.cur_time_ns = time.monotonic_ns()
+    """The main loop of the game. Runs continuously until game is completed."""
+    while True:
+        state.cur_time_ns = time.monotonic_ns()
 
-            msgs = clients.get_messages()
-            await process_messages(state, clients, msgs)
+        msgs = clients.get_messages()
+        await process_messages(state, clients, msgs)
 
-            state.check_mode_progression()
+        if state.game_active():
+            await update_amp_timer(state, clients, Alliance.BLUE)
+            await update_amp_timer(state, clients, Alliance.RED)
 
-            await asyncio.sleep(MAIN_PERIOD_MSEC / 1000)
+        state.check_mode_progression()
+
+        await asyncio.sleep(MAIN_PERIOD_MSEC / 1000)
 
 

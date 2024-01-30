@@ -3,7 +3,7 @@
 Actions may modify state and update field elements in relation to new state.
 """
 
-from frc_2024_field_server.game.constants import AMP_NOTE_SCORE_FOR_MODE, AMPLIFIED_SPEAKER_NOTE_SCORE, UNAMPLIFIED_SPEAKER_NOTE_SCORE_FOR_MODE
+from frc_2024_field_server.game.constants import AMP_NOTE_SCORE_FOR_MODE, AMPLIFIED_SPEAKER_NOTE_SCORE, UNAMPLIFIED_SPEAKER_NOTE_SCORE_FOR_MODE, AMP_TIME_NS
 from frc_2024_field_server.game.state import GameState
 from frc_2024_field_server.clients import Clients
 from frc_2024_field_server.message_receiver import Alliance, FieldElement
@@ -42,3 +42,14 @@ async def score_speaker_note(state: GameState, clients: Clients, alliance: Allia
         alliance_state.score += AMPLIFIED_SPEAKER_NOTE_SCORE
     else:
         alliance_state.score += UNAMPLIFIED_SPEAKER_NOTE_SCORE_FOR_MODE[state.current_mode]
+
+async def activate_amp(state: GameState, clients: Clients, alliance: Alliance):
+    alliance_state = state.alliances[alliance]
+    alliance_state.banked_notes -= 2
+    alliance_state.amp_end_ns = state.cur_time_ns + AMP_TIME_NS
+    await update_amp_status_light(state, clients, alliance)
+
+async def end_amp_time(state: GameState, clients: Clients, alliance: Alliance):
+    alliance_state = state.alliances[alliance]
+    alliance_state.amp_end_ns = 0
+    await update_amp_status_light(state, clients, alliance)

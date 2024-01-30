@@ -35,15 +35,21 @@
     * [X] Amp points (auto) <2024-01-28 Sun>
     * [X] Speaker points (auto) <2024-01-28 Sun>
     * [X] Amp note banking <2024-01-28 Sun>
-    * [ ] Amp mode timer
-    * [ ] Speaker points (teleop, amp'd)
+    * [X] Amp mode timer <2024-01-30 Tue>
+    * [X] Speaker points (teleop, amp'd) <2024-01-30 Tue>
+	* [ ] Coopertition Mode
+	  - triggerable if one note banked and within timeframe (and not already triggered)
+	  - activates joint decision if both offer
   * UI
     - tkinter is pretty close to built-in, we'll use that.
     * [X] Connection status indicators for telnet clients <2024-01-27 Sat>
     * [X] Ring score displays for red and blue alliance <2024-01-28 Sun>
     * [X] Time display and mode <2024-01-27 Sat>
-	* [ ] Red and blue amp status display
+	* [X] Red and blue amp status display <2024-01-30 Tue>
+	  * [X] banked note count <2024-01-30 Tue>
+	  * [X] amp time <2024-01-30 Tue>
 	* [ ] Coopertition status display (red offered, blue offered, cooperating)
+	* [X] Blue and red side align with Cheesy Arena (blue on left) <2024-01-29 Mon>
 
 # Notes
 - amp prototype is hosted at https://wokwi.com/projects/387770973202227201

@@ -51,18 +51,36 @@ class UI:
         self._connections.grid_rowconfigure(0, weight=1)
         self._connections.grid_rowconfigure(1, weight=1)
 
-        self._red_speaker_connection = self._init_connection(self._connections, 0, 0, "Red Speaker")
-        self._blue_speaker_connection = self._init_connection(self._connections, 0, 1, "Blue Speaker")
-        self._red_amp_connection = self._init_connection(self._connections, 1, 0, "Red Amp")
-        self._blue_amp_connection = self._init_connection(self._connections, 1, 1, "Blue Amp")
+        self._blue_speaker_connection = self._init_connection(self._connections, 0, 0, "Blue Speaker")
+        self._red_speaker_connection = self._init_connection(self._connections, 0, 1, "Red Speaker")
+        self._blue_amp_connection = self._init_connection(self._connections, 1, 0, "Blue Amp")
+        self._red_amp_connection = self._init_connection(self._connections, 1, 1, "Red Amp")
 
         self._scores = ttk.Frame(self._topframe, padding=5)
         self._scores.grid(row=1, column=0, sticky="we")
         self._scores.grid_columnconfigure(0, weight=1)
         self._scores.grid_columnconfigure(1, weight=1)
 
-        self._red_score_label = self._init_score(self._scores, 0, "Red Alliance")
-        self._blue_score_label = self._init_score(self._scores, 1, "Blue Alliance")
+        self._blue_score_label = self._init_score(self._scores, 0, "Blue Alliance")
+        self._red_score_label = self._init_score(self._scores, 1, "Red Alliance")
+        self._blue_amp_status_label = ttk.Label(self._scores, padding=5, text="Amp off", font=self._category_font, justify="center")
+
+        blue_amp_banked_notes_label = ttk.Label(self._scores, padding=5, text="Amp notes", font=self._category_font, justify="center")
+        blue_amp_banked_notes_label.grid(row=2, column=0)
+        red_amp_banked_notes_label = ttk.Label(self._scores, padding=5, text="Amp notes", font=self._category_font, justify="center")
+        red_amp_banked_notes_label.grid(row=2, column=1)
+        self._blue_banked_notes_count_label = ttk.Label(self._scores, padding=5, text="0", font=self._category_font, justify="center")
+        self._blue_banked_notes_count_label.grid(row=3, column=0)
+        self._red_banked_notes_count_label = ttk.Label(self._scores, padding=5, text="0", font=self._category_font, justify="center")
+        self._red_banked_notes_count_label.grid(row=3, column=1)
+
+        self._blue_amp_status_label.grid(row=4, column=0)
+        self._red_amp_status_label = ttk.Label(self._scores, padding=5, text="Amp off", font=self._category_font, justify="center")
+        self._red_amp_status_label.grid(row=4, column=1)
+        self._blue_amp_time_label = ttk.Label(self._scores, padding=5, text="0.0", font=self._category_font, justify="center")
+        self._blue_amp_time_label.grid(row=5, column=0)
+        self._red_amp_time_label = ttk.Label(self._scores, padding=5, text="0.0", font=self._category_font, justify="center")
+        self._red_amp_time_label.grid(row=5, column=1)
 
         time_frame = ttk.Frame(self._topframe, padding=5)
         time_frame.grid(row=2, column=0, sticky="wes")
@@ -113,6 +131,7 @@ class UI:
         while True:
             self._update_connection_states(self._clients)
             self._update_scores(self._state)
+            self._update_amps(self._state)
             self._update_mode_and_time(self._state)
 
             self._root.update()
@@ -134,6 +153,19 @@ class UI:
         """Update the score displays."""
         self._red_score_label.config(text=state.alliances[Alliance.RED].score)
         self._blue_score_label.config(text=state.alliances[Alliance.BLUE].score)
+
+    def _update_amps(self, state: GameState) -> None:
+        """Update amp status displays."""
+        self._blue_banked_notes_count_label.config(text=state.alliances[Alliance.BLUE].banked_notes)
+        self._red_banked_notes_count_label.config(text=state.alliances[Alliance.RED].banked_notes)
+
+        self._blue_amp_status_label.config(text="Amp off" if state.alliances[Alliance.BLUE].amp_end_ns==0 else "Amp on")
+        self._red_amp_status_label.config(text="Amp off" if state.alliances[Alliance.RED].amp_end_ns==0 else "Amp on")
+
+        blue_amp_time_ns = state.alliances[Alliance.BLUE].get_remaining_amp_time_ns(state.cur_time_ns)
+        red_amp_time_ns = state.alliances[Alliance.RED].get_remaining_amp_time_ns(state.cur_time_ns)
+        self._blue_amp_time_label.config(text=round(blue_amp_time_ns / 1e9, 1))
+        self._red_amp_time_label.config(text=round(red_amp_time_ns / 1e9, 1))
 
     def _update_mode_and_time(self, state: GameState) -> None:
         """Update the current time remaining and the current game mode."""

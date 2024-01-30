@@ -77,7 +77,7 @@ class AllianceState:
 
     def __init__(self):
         self.score = 0
-        self.amp_end_ms = 0  # if nonzero, time in match that the amp will wrap up.
+        self.amp_end_ns = 0  # if nonzero, time in match that the amp will wrap up.
         self.banked_notes = 0
 
     def start_round(self) -> None:
@@ -86,3 +86,6 @@ class AllianceState:
         self.amp_end_ns = 0
         self.banked_notes = 0
 
+    def get_remaining_amp_time_ns(self, cur_time_ns: int) -> int:
+        """Get remaining amp time, or 0 if amp is off."""
+        return 0 if (self.amp_end_ns == 0 or self.amp_end_ns < cur_time_ns) else self.amp_end_ns - cur_time_ns
