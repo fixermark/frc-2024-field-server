@@ -48,8 +48,15 @@ async def activate_amp(state: GameState, clients: Clients, alliance: Alliance):
     alliance_state.banked_notes -= 2
     alliance_state.amp_end_ns = state.cur_time_ns + AMP_TIME_NS
     await update_amp_status_light(state, clients, alliance)
+    await clients.output(alliance, FieldElement.SPEAKER, "AA")
+
+async def set_speaker_amp_display(state: GameState, clients: Clients, alliance: Alliance, value: int):
+    """Set time remaining on speaker to the specified value (0 to 10)."""
+    output_str=f'A{"A" if value == 10 else str(value)}'
+    await clients.output(alliance, FieldElement.SPEAKER, output_str)
 
 async def end_amp_time(state: GameState, clients: Clients, alliance: Alliance):
     alliance_state = state.alliances[alliance]
     alliance_state.amp_end_ns = 0
     await update_amp_status_light(state, clients, alliance)
+    await clients.output(alliance, FieldElement.SPEAKER, "A0")

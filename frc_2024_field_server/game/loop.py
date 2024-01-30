@@ -2,6 +2,7 @@ from typing import Final
 
 import asyncio
 import logging
+import math
 import time
 from frc_2024_field_server.game import actions
 from frc_2024_field_server.game.messages import Score, AmpButtonPressed
@@ -35,18 +36,29 @@ async def process_messages(state: GameState, clients: Clients, msgs: list[Client
             if alliance.amp_end_ns == 0 and alliance.banked_notes == 2:
                 await actions.activate_amp(state, clients, msg.alliance)
 
+
 async def update_amp_timer(state: GameState, clients: Clients, alliance: Alliance) -> None:
     """Update amp timer, if running."""
-    alliance_fields = state.alliances[alliance]
-    if alliance_fields.amp_end_ns == 0:
+    alliance_state = state.alliances[alliance]
+    if alliance_state.amp_end_ns == 0:
         return
-    if state.cur_time_ns > alliance_fields.amp_end_ns:
+
+    if state.cur_time_ns > alliance_state.amp_end_ns:
         await actions.end_amp_time(state, clients, alliance)
+        return
+
+    cur_time_remaining_secs = math.ceil((alliance_state.amp_end_ns - state.cur_time_ns) / 1e9)
+    prev_time_remaining_secs = math.ceil((alliance_state.amp_end_ns - state.prev_time_ns) / 1e9)
+
+    if cur_time_remaining_secs != prev_time_remaining_secs:
+        await actions.set_speaker_amp_display(state, clients, alliance, cur_time_remaining_secs)
+
 
 
 async def game_loop(state: GameState, clients: Clients) -> None:
     """The main loop of the game. Runs continuously until game is completed."""
     while True:
+        state.prev_time_ns = state.cur_time_ns
         state.cur_time_ns = time.monotonic_ns()
 
         msgs = clients.get_messages()

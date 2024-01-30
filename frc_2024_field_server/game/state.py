@@ -17,12 +17,16 @@ class GameState:
 
     def __init__(self):
         self.cur_time_ns:int = 0
+        self.prev_time_ns: int = 0
         self.mode_end_ns:int = 0
         self.current_mode = Mode.SETUP
         self.alliances = (AllianceState(), AllianceState())
 
-    def check_mode_progression(self) -> None:
-        """Check if mode should progress and move it forward if it should."""
+    def check_mode_progression(self) -> bool:
+        """Check if mode should progress and move it forward if it should.
+
+        Return:
+          True if we are at match end."""
         next_mode: Mode | None = None
 
         if self.current_mode is Mode.AUTONOMOUS:
@@ -30,12 +34,11 @@ class GameState:
         elif self.current_mode is Mode.TELEOP:
             next_mode = Mode.SETUP
 
-        if next_mode is None:
-            return
-
-        if self.cur_time_ns > self.mode_end_ns:
+        if self.cur_time_ns > self.mode_end_ns and next_mode is not None:
             self.current_mode = next_mode
             self.mode_end_ns = 0
+
+        return next_mode is Mode.SETUP
 
     def _start_round(self) -> None:
         """Initialize the round by zeroing out the scores and clearing state."""

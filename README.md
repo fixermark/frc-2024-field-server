@@ -37,9 +37,12 @@
     * [X] Amp note banking <2024-01-28 Sun>
     * [X] Amp mode timer <2024-01-30 Tue>
     * [X] Speaker points (teleop, amp'd) <2024-01-30 Tue>
+	* [X] Update speaker display to show amp timing <2024-01-30 Tue>
 	* [ ] Coopertition Mode
 	  - triggerable if one note banked and within timeframe (and not already triggered)
 	  - activates joint decision if both offer
+	* [ ] At match start, init amp and speaker displays and game state
+	* [ ] At match end, clear amp timer display
   * UI
     - tkinter is pretty close to built-in, we'll use that.
     * [X] Connection status indicators for telnet clients <2024-01-27 Sat>
