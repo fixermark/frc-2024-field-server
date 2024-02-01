@@ -7,6 +7,7 @@ from tkinter.font import Font
 from frc_2024_field_server.clients import Clients
 from frc_2024_field_server.client import Client
 from frc_2024_field_server.message_receiver import Alliance, FieldElement
+from frc_2024_field_server.game.constants import TELEOP_PERIOD_NS, COOPERTITION_WINDOW_NS
 from frc_2024_field_server.game.modes import Mode
 from frc_2024_field_server.game.state import GameState
 from typing import Final
@@ -82,6 +83,16 @@ class UI:
         self._red_amp_time_label = ttk.Label(self._scores, padding=5, text="0.0", font=self._category_font, justify="center")
         self._red_amp_time_label.grid(row=5, column=1)
 
+        blue_coopertition_label = ttk.Label(self._scores, padding=5, text="Coopertition", font=self._category_font, justify="center")
+        blue_coopertition_label.grid(row=6, column=0)
+        red_coopertition_label = ttk.Label(self._scores, padding=5, text="Coopertition", font=self._category_font, justify="center")
+        red_coopertition_label.grid(row=6, column=1)
+
+        self._blue_coopertition_status_label = ttk.Label(self._scores, padding=5, text="Available", font=self._category_font, justify="center")
+        self._blue_coopertition_status_label.grid(row=7, column=0)
+        self._red_coopertition_status_label = ttk.Label(self._scores, padding=5, text="Available", font=self._category_font, justify="center")
+        self._red_coopertition_status_label.grid(row=7, column=1)
+
         time_frame = ttk.Frame(self._topframe, padding=5)
         time_frame.grid(row=2, column=0, sticky="wes")
         time_frame.grid_columnconfigure(0, weight=1)
@@ -132,6 +143,7 @@ class UI:
             self._update_connection_states(self._clients)
             self._update_scores(self._state)
             self._update_amps(self._state)
+            self._update_coopertition(self._state)
             self._update_mode_and_time(self._state)
 
             self._root.update()
@@ -166,6 +178,22 @@ class UI:
         red_amp_time_ns = state.alliances[Alliance.RED].get_remaining_amp_time_ns(state.cur_time_ns)
         self._blue_amp_time_label.config(text=round(blue_amp_time_ns / 1e9, 1))
         self._red_amp_time_label.config(text=round(red_amp_time_ns / 1e9, 1))
+
+    def _update_coopertition(self, state: GameState) -> None:
+        """Update coopertition status displays."""
+        coopertition_accepted = state.alliances[Alliance.BLUE].coopertition_offered and state.alliances[Alliance.RED].coopertition_offered
+        if coopertition_accepted:
+            self._blue_coopertition_status_label.config(text="Accepted")
+            self._red_coopertition_status_label.config(text="Accepted")
+            return
+
+        if not state.coopertition_available():
+            self._blue_coopertition_status_label.config(text="Unavailable")
+            self._red_coopertition_status_label.config(text="Unavailable")
+            return
+
+        self._blue_coopertition_status_label.config(text="Offered" if state.alliances[Alliance.BLUE].coopertition_offered else "Available")
+        self._red_coopertition_status_label.config(text="Offered" if state.alliances[Alliance.RED].coopertition_offered else "Available")
 
     def _update_mode_and_time(self, state: GameState) -> None:
         """Update the current time remaining and the current game mode."""

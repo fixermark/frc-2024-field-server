@@ -1,14 +1,13 @@
 import asyncio
 import logging
 import time
+from frc_2024_field_server.game.constants import AUTON_PERIOD_NS, TELEOP_PERIOD_NS, COOPERTITION_WINDOW_NS
 from frc_2024_field_server.game.modes import Mode
 from frc_2024_field_server.message_receiver import Alliance
 from typing import Final
 
 logger = logging.getLogger(__name__)
 
-AUTON_PERIOD_NS: Final[int] = 15_000_000_000
-TELEOP_PERIOD_NS: Final[int] = 135_000_000_000
 
 """State of game."""
 
@@ -21,6 +20,7 @@ class GameState:
         self.mode_end_ns:int = 0
         self.current_mode = Mode.SETUP
         self.alliances = (AllianceState(), AllianceState())
+        self.first_game_frame = False
 
     def check_mode_progression(self) -> bool:
         """Check if mode should progress and move it forward if it should.
@@ -44,6 +44,7 @@ class GameState:
         """Initialize the round by zeroing out the scores and clearing state."""
         self.alliances[Alliance.RED].start_round()
         self.alliances[Alliance.BLUE].start_round()
+        self.first_game_frame = True
 
     def handle_go_button(self) -> None:
         """Handle push of the explicit 'Go' button (space bar)."""
@@ -63,17 +64,34 @@ class GameState:
         self.current_mode = Mode.SETUP
         self.mode_end_ns = 0
 
-    def get_remaining_time_ns(self) -> int:
-        """If in a timed mode, get remaining time in nanos. Otherwise, get 0."""
-        current_ns = time.monotonic_ns()
-        if self.mode_end_ns == 0 or current_ns > self.mode_end_ns:
+    def get_remaining_time_ns(self, when=None) -> int:
+        """If in a timed mode, get remaining time in nanos. Otherwise, get 0.
+
+        If `when` is specified, compute off of that time instead of cur_time_ns.
+        """
+
+        if when is None:
+            when = self.cur_time_ns
+
+        if self.mode_end_ns == 0 or when > self.mode_end_ns:
             return 0
 
-        return self.mode_end_ns - current_ns
+        return self.mode_end_ns - when
 
     def game_active(self) -> bool:
-        """Return true if the game is in an active state (autonomous or teleop)."""
+        """Return True if the game is in an active state (autonomous or teleop)."""
         return self.current_mode in [Mode.AUTONOMOUS, Mode.TELEOP]
+
+    def coopertition_available(self, when=None) -> bool:
+        """Return True if pressing the coopertition button is allowed at this time.
+
+        If `when` is specified, compute off of that timestamp instead of cur_time_ns.
+        """
+        if not self.current_mode is Mode.TELEOP:
+            return False
+
+        time_remaining = self.get_remaining_time_ns(when)
+        return time_remaining > TELEOP_PERIOD_NS - COOPERTITION_WINDOW_NS
 
 class AllianceState:
     """State of a single alliance."""
@@ -82,12 +100,14 @@ class AllianceState:
         self.score = 0
         self.amp_end_ns = 0  # if nonzero, time in match that the amp will wrap up.
         self.banked_notes = 0
+        self.coopertition_offered = False
 
     def start_round(self) -> None:
         """Init state for start of round."""
         self.score = 0
         self.amp_end_ns = 0
         self.banked_notes = 0
+        self.coopertition_offered = False
 
     def get_remaining_amp_time_ns(self, cur_time_ns: int) -> int:
         """Get remaining amp time, or 0 if amp is off."""

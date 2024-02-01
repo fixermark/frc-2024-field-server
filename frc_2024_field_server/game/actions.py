@@ -4,6 +4,7 @@ Actions may modify state and update field elements in relation to new state.
 """
 
 from frc_2024_field_server.game.constants import AMP_NOTE_SCORE_FOR_MODE, AMPLIFIED_SPEAKER_NOTE_SCORE, UNAMPLIFIED_SPEAKER_NOTE_SCORE_FOR_MODE, AMP_TIME_NS
+from frc_2024_field_server.game.modes import Mode
 from frc_2024_field_server.game.state import GameState
 from frc_2024_field_server.clients import Clients
 from frc_2024_field_server.message_receiver import Alliance, FieldElement
@@ -56,7 +57,31 @@ async def set_speaker_amp_display(state: GameState, clients: Clients, alliance: 
     await clients.output(alliance, FieldElement.SPEAKER, output_str)
 
 async def end_amp_time(state: GameState, clients: Clients, alliance: Alliance):
+    """Handle the end of an amp period."""
     alliance_state = state.alliances[alliance]
     alliance_state.amp_end_ns = 0
     await update_amp_status_light(state, clients, alliance)
     await clients.output(alliance, FieldElement.SPEAKER, "A0")
+
+async def offer_coopertition(state: GameState, clients: Clients, alliance: Alliance):
+    """Record an alliance offering coopertition."""
+    alliance_state = state.alliances[alliance]
+    alliance_state.banked_notes -= 1
+    alliance_state.coopertition_offered = True
+    await update_amp_status_light(state, clients, alliance)
+    await update_coopertition_lights(state, clients)
+
+async def update_coopertition_lights(state: GameState, clients: Clients):
+    """Update the state of the coopertition lights."""
+    if state.alliances[Alliance.BLUE].coopertition_offered and state.alliances[Alliance.RED].coopertition_offered:
+        await clients.output(Alliance.BLUE, FieldElement.AMP, "C1")
+        await clients.output(Alliance.RED, FieldElement.AMP, "C1")
+        return
+
+    if not state.current_mode is Mode.AUTONOMOUS and not state.coopertition_available():
+        await clients.output(Alliance.BLUE, FieldElement.AMP, "C0")
+        await clients.output(Alliance.RED, FieldElement.AMP, "C0")
+        return
+
+    await clients.output(Alliance.BLUE, FieldElement.AMP, "C1" if state.alliances[Alliance.BLUE].coopertition_offered else "CB")
+    await clients.output(Alliance.RED, FieldElement.AMP, "C1" if state.alliances[Alliance.RED].coopertition_offered else "CB")
