@@ -38,7 +38,7 @@
     * [X] Amp mode timer <2024-01-30 Tue>
     * [X] Speaker points (teleop, amp'd) <2024-01-30 Tue>
 	* [X] Update speaker display to show amp timing <2024-01-30 Tue>
-	* [ ] Coopertition Mode
+	* [X] Coopertition Mode <2024-02-01 Thu>
 	  - triggerable if one note banked and within timeframe (and not already triggered)
 	  - activates joint decision if both offer
 	* [ ] At match start, init amp and speaker displays and game state
@@ -51,7 +51,7 @@
 	* [X] Red and blue amp status display <2024-01-30 Tue>
 	  * [X] banked note count <2024-01-30 Tue>
 	  * [X] amp time <2024-01-30 Tue>
-	* [ ] Coopertition status display (red offered, blue offered, cooperating)
+	* [X] Coopertition status display (red offered, blue offered, cooperating) <2024-02-01 Thu>
 	* [X] Blue and red side align with Cheesy Arena (blue on left) <2024-01-29 Mon>
 
 # Notes
