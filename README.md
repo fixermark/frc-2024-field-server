@@ -7,6 +7,16 @@
 # Setup
 **TODO**
 
+## Network
+
+The default network configuration is as follows:
+* Field server: IP 10.0.1.1
+
+|         | Amp        | Speaker    |
+|---------|------------|------------|
+| Blue    | 10.0.1.111 | 10.0.1.110 |
+| Red     | 10.0.1.113 | 10.0.1.112 |
+
 # Tasks to complete
 * Clients (shared)
   * [X] Implement EthernetComms side of shim library. <2024-01-27 Sat>
@@ -14,6 +24,7 @@
       - Will probably need working hardware to test this; I don't think wokwi can simulate the Ethernet shield infrastructure
   * [X] Arduino logic: implement IP address selection based on amp vs speaker and red alliance vs blue alliance <2024-01-27 Sat>
   * [X] Prototype reconnection logic for comms (can simulate with serial by having a pushbutton drop connection). <2024-02-03 Sat>
+	- reconnect also handles bad handshake from server
   * [X] modify protocol: both amp and speaker can send 'ring speaker' and 'ring amp' score singals (override for manual scoring) <2024-01-27 Sat>
 * Amp client
 * Speaker client
@@ -22,7 +33,7 @@
   * [ ] implement
 * Server
   * [X] Client init logic: when new client connects, send initial config by querying state <2024-02-03 Sat>
-  * [ ] handle dropped clients
+  * [X] handle dropped clients <2024-02-03 Sat>
   * [X] Server: how will telnet connections from server to client operate bidirectionally? <2024-01-28 Sun>
     - Will need to find the asyncio equivalent of "select on multiple futures"
     - Completed: spawned two infinite-loop subtasks that pipe the input and output
@@ -42,8 +53,8 @@
 	* [X] Coopertition Mode <2024-02-01 Thu>
 	  - triggerable if one note banked and within timeframe (and not already triggered)
 	  - activates joint decision if both offer
-	* [ ] At match start, init amp and speaker displays and game state
-	* [ ] At match end, clear amp timer display
+	* [ ] At match start, init amp and speaker client state and game state
+	* [ ] At match end, clear amp timer display from speaker clients
 	* [ ] After NO on a client, server should *close* connection.
   * UI
     - tkinter is pretty close to built-in, we'll use that.

@@ -307,9 +307,6 @@ IPAddress select_client_ip(const char* alliance_string) {
 
 /// Connects to server via telnet
 void establishConnection() {
-  if (g_comms) {
-    delete g_comms;
-  }
 
   auto msg = digitalRead(ALLIANCE_SELECTION_PIN) == HIGH ? "HBA\r\n" : "HRA\r\n";
   byte mac[6];
@@ -317,21 +314,21 @@ void establishConnection() {
   select_mac(msg, mac);
   auto my_ip = select_client_ip(msg);
 
-  // TODO: we should have an establish connection handshake function that can successfully
-  // negotiate a connection so that if we lose connection we can restore it
-  g_comms = new Comms(mac, my_ip, field_server_ip, server_port);
-  g_comms->write(msg);
+  while (true) {  // try forever; once connection is established, we return out of here
+    if (g_comms) {
+      delete g_comms;
+    }
 
-  char* input = g_comms->input();
-  // Wait for response from server
-  for (; input == nullptr; input=g_comms->input()) {
-    delay(500);
-  }
-  if (input[0] != 'O' || input[1] != 'K') {
-    // Error state: highlight top light only, sleep forever.
-    digitalWrite(ALLIANCE_LIGHT_HIGH_PIN, HIGH);
-    while(true) {
+    g_comms = new Comms(mac, my_ip, field_server_ip, server_port);
+    g_comms->write(msg);
+
+    char* input = g_comms->input();
+    // Wait for response from server
+    for (; input == nullptr; input=g_comms->input()) {
       delay(500);
+    }
+    if (input[0] == 'O' && input[1] == 'K') {
+      return;
     }
   }
 

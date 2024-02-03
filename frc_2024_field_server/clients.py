@@ -1,4 +1,4 @@
-from frc_2024_field_server.client import Client
+from frc_2024_field_server.client import Client, ClientException
 from frc_2024_field_server.game.clients import new_client
 from frc_2024_field_server.message_receiver import Alliance, FieldElement, Message, Receiver
 from dataclasses import dataclass
@@ -29,27 +29,41 @@ class Clients(Receiver):
     async def new_connection_shell(self, reader: TelnetReader, writer: TelnetWriter) -> None:
         """Telnet-style shell handler for new clients."""
 
-        inp = await reader.readline()
-        if not inp:
-            writer.write("NO\r\n")
-            await writer.drain()
-            return
+        try:
+            inp = await reader.readline()
+            if not inp:
+                writer.write("NO\r\n")
+                await writer.drain()
+                return
 
-        alliance, element = self._decode_field_element_id(inp)
+            alliance, element = self._decode_field_element_id(inp)
 
-        if alliance is None or element is None:
-            logger.error("Unable to connect client with ID %s", inp)
-            writer.write("NO\r\n")
-            await writer.drain()
-            return
+            if alliance is None or element is None:
+                logger.error("Unable to connect client with ID %s", inp)
+                writer.write("NO\r\n")
+                await writer.drain()
+                return
 
-        logger.info("Connected client %s %s", alliance.name, element.name)
-        client = new_client(alliance, element, self)
-        self.new_clients.append(client)
-        self.clients[alliance][element] =client
-        writer.write("OK\r\n")
-        await writer.drain()
-        await client.shell(reader, writer)
+            logger.info("Connected client %s %s", alliance.name, element.name)
+            client = new_client(alliance, element, self)
+            try:
+                self.new_clients.append(client)
+                self.clients[alliance][element] =client
+                writer.write("OK\r\n")
+                await writer.drain()
+                await client.shell(reader, writer)
+            except Exception as e:
+                logger.error("Client connection shell caught exception from running client")
+                logger.exception(e)
+                if isinstance(e, ClientException):
+                    # Need to do away with the client object because it died
+                    stored_client = self.clients[e.client.alliance][e.client.field_element]
+                    if stored_client is e.client:
+                        self.clients[e.client.alliance][e.client.field_element] = None
+        except Exception as e:
+            logger.error("Client connection shell caught exception initing client")
+            logger.exception(e)
+
 
     def _decode_field_element_id(self, data: str) -> tuple[Alliance|None, FieldElement|None]:
         """Decodes the alliance and field element, or returns None,None if cannot decode."""

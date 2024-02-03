@@ -1,3 +1,4 @@
+from __future__ import annotations
 
 from abc import ABC, abstractmethod
 import asyncio
@@ -17,6 +18,16 @@ class Datasource(Enum):
 
 logger = logging.getLogger(__name__)
 
+class ClientException(Exception):
+    """An exception that occurs inside a client. Carries the client itself with it."""
+    def __init__(self, client: Client):
+        super().__init__(f"Exception raised from client [{client.alliance.name} | {client.field_element.name}]")
+        self.client = client
+
+class ClientClosedException(Exception):
+    """An exception signalling a client closed."""
+
+
 class Client(ABC):
     """An individual client connection."""
 
@@ -28,20 +39,42 @@ class Client(ABC):
 
     async def shell(self, reader:TelnetReader, writer:TelnetWriter)-> None:
         """Processing shell for handling transactions between client and game."""
-        await asyncio.wait([self.await_client_input_shell(reader),
-                            self.await_server_output_shell(writer)])
+        try:
+            await asyncio.gather(self.await_client_input_shell(reader),
+                                self.await_server_output_shell(writer),
+                                self.await_telnet_stream_monitor(reader, writer))
+        except Exception as e:
+            raise ClientException(self) from e
 
     async def await_client_input_shell(self, reader:TelnetReader) -> None:
         """Sub-task to await for client input."""
         while True:
+            if reader.connection_closed:
+                raise ClientClosedException()
             incoming: str = await reader.readline()
             self.handle_input(incoming)
 
     async def await_server_output_shell(self, writer: TelnetWriter) -> None:
         """Sub-task to await for server output."""
         while True:
+            if writer.connection_closed:
+                raise ClientClosedException()
             outgoing = await self.output_queue.get()
             writer.write(f'{outgoing}\r\n')
+
+    async def await_telnet_stream_monitor(self, reader: TelnetReader, writer: TelnetWriter) -> None:
+        """Active monitoring for connection closure.
+
+        Necessary because connection closer doesn't un-wait readers and writers.
+        """
+        while True:
+            if writer.connection_closed:
+                raise ClientClosedException("Writer closed.")
+            if reader.connection_closed:
+                raise ClientClosedException("Reader closed.")
+
+            await asyncio.sleep(0.5)
+
 
     async def output(self, msg: str) -> None:
         """Output a message to the connected client."""
