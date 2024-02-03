@@ -3,6 +3,7 @@ from abc import ABC, abstractmethod
 import asyncio
 from enum import Enum, auto
 import logging
+from frc_2024_field_server.game.state import GameState
 from frc_2024_field_server.message_receiver import Alliance, FieldElement, Receiver, Message
 from telnetlib3 import TelnetReader,TelnetWriter
 from typing import Literal
@@ -49,6 +50,10 @@ class Client(ABC):
     @abstractmethod
     def handle_input(self, inp: str) -> None:
         """Handler for input coming from client."""
+
+    @abstractmethod
+    async def send_init_state(self, state: GameState) -> None:
+        """Sends initial configuration to a newly-connected client."""
 
     def report_unknown_input(self, inp: bytes) -> None:
         """Utility function used by inheriting classes: reports unknown inputs."""

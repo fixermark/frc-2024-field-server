@@ -20,6 +20,7 @@ class Clients(Receiver):
     def __init__(self):
         self.clients: list[list[Client|None]] = [[None,None],[None,None]]
         self._messages: list[ClientMessage] = []
+        self.new_clients: list[Client] = []
 
     def connect(self, alliance: Alliance, element: FieldElement, client: Client) -> None:
         """Connect a client to the set of clients."""
@@ -44,6 +45,7 @@ class Clients(Receiver):
 
         logger.info("Connected client %s %s", alliance.name, element.name)
         client = new_client(alliance, element, self)
+        self.new_clients.append(client)
         self.clients[alliance][element] =client
         writer.write("OK\r\n")
         await writer.drain()
@@ -51,21 +53,21 @@ class Clients(Receiver):
 
     def _decode_field_element_id(self, data: str) -> tuple[Alliance|None, FieldElement|None]:
         """Decodes the alliance and field element, or returns None,None if cannot decode."""
-        if len(data) < 2:
+        if len(data) < 3 or data[0] != 'H':
             return None,None
 
         alliance: Alliance
-        if data[0] == 'R':
+        if data[1] == 'R':
             alliance = Alliance.RED
-        elif data[0] == 'B':
+        elif data[1] == 'B':
             alliance = Alliance.BLUE
         else:
             return None,None
 
         field_element: FieldElement
-        if data[1] == 'A':
+        if data[2] == 'A':
             field_element = FieldElement.AMP
-        elif data[1] == 'S':
+        elif data[2] == 'S':
             field_element = FieldElement.SPEAKER
         else:
             return None,None
@@ -78,6 +80,11 @@ class Clients(Receiver):
         self._messages = []
         return msgs
 
+    def get_new_clients(self) -> list[Client]:
+        """Get all new clients."""
+        clients = self.new_clients
+        self.new_clients = []
+        return clients
 
     def receive_message(self, alliance: Alliance, element: FieldElement, message:Message):
         """Receive and enqueue a message."""

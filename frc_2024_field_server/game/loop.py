@@ -81,6 +81,10 @@ async def game_loop(state: GameState, clients: Clients) -> None:
             await actions.update_amp_status_light(state, clients, Alliance.RED)
             await actions.update_coopertition_lights(state, clients)
 
+        new_clients = clients.get_new_clients()
+        for client in new_clients:
+            await client.send_init_state(state)
+
         msgs = clients.get_messages()
         await process_messages(state, clients, msgs)
 

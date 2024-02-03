@@ -93,6 +93,10 @@ class GameState:
         time_remaining = self.get_remaining_time_ns(when)
         return time_remaining > TELEOP_PERIOD_NS - COOPERTITION_WINDOW_NS
 
+    def coopertition_accepted(self) -> bool:
+        """Return True if both alliances have activated coopertition."""
+        return self.alliances[Alliance.RED].coopertition_offered and self.alliances[Alliance.BLUE].coopertition_offered
+
 class AllianceState:
     """State of a single alliance."""
 

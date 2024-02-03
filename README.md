@@ -13,14 +13,15 @@
     * [ ] Test EthernetComms side of shim libaray.
       - Will probably need working hardware to test this; I don't think wokwi can simulate the Ethernet shield infrastructure
   * [X] Arduino logic: implement IP address selection based on amp vs speaker and red alliance vs blue alliance <2024-01-27 Sat>
-  * [ ] Prototype reconnection logic for comms (can simulate with serial by having a pushbutton drop connection).
+  * [X] Prototype reconnection logic for comms (can simulate with serial by having a pushbutton drop connection). <2024-02-03 Sat>
   * [X] modify protocol: both amp and speaker can send 'ring speaker' and 'ring amp' score singals (override for manual scoring) <2024-01-27 Sat>
 * Amp client
 * Speaker client
   * [ ] get some details on how the LED chaser strip is controlled.
+	- neopixel
   * [ ] implement
 * Server
-  * [ ] Client init logic: when new client connects, send initial config by querying state
+  * [X] Client init logic: when new client connects, send initial config by querying state <2024-02-03 Sat>
   * [ ] handle dropped clients
   * [X] Server: how will telnet connections from server to client operate bidirectionally? <2024-01-28 Sun>
     - Will need to find the asyncio equivalent of "select on multiple futures"
@@ -43,6 +44,7 @@
 	  - activates joint decision if both offer
 	* [ ] At match start, init amp and speaker displays and game state
 	* [ ] At match end, clear amp timer display
+	* [ ] After NO on a client, server should *close* connection.
   * UI
     - tkinter is pretty close to built-in, we'll use that.
     * [X] Connection status indicators for telnet clients <2024-01-27 Sat>

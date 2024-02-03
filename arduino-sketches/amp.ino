@@ -28,15 +28,14 @@
 /// - every message ends with \r\n
 ///
 /// = init
-/// - this client sends 'RA' or 'BA' depending on if it's red or blue alliance
+/// - this client sends 'HRA' or 'HBA' depending on if it's red or blue alliance
 /// - server responds with OK or NO
 ///   - on NO, light only top alliance light solid and park in error state; must reboot
 ///
 /// = outbound to server
 /// - A: alliance button pressed
 /// - C: coopertition button pressed
-/// - RA: Ring sensor tripped
-/// - RS: Override button pressed to score a ring in the speaker
+/// - R: Ring sensor tripped
 ///
 /// = inbound from server
 /// - L0, L1: alliance low light off or on
@@ -54,6 +53,7 @@
 #define NOTE_SENSOR 6
 #define ALLIANCE_SELECTION_PIN 5
 #define MANUAL_SPEAKER_SCORING 4
+#define DEBUG_DROP_CONNECTION_PIN 3
 
 #define ALLIANCE_LIGHT_BLINK_PERIOD_MSEC 500
 #define COOPERTITION_LIGHT_BLINK_PERIOD_MSEC 1000
@@ -197,8 +197,8 @@ public:
   }
 
   bool connected() {
-    // serial comms cannot disconnect
-    return true;
+    // debugging: report serial comms disconnected if pin 3 is pulled high
+    return !digitalRead(DEBUG_DROP_CONNECTION_PIN);
   }
 };
 
@@ -254,7 +254,7 @@ struct AmpState {
 AmpState g_amp_state = {false, false, false ,false, false,
   DebouncingMomentary(), DebouncingMomentary(), DebouncingMomentary()};
 
-Comms* g_comms;
+Comms* g_comms = nullptr;
 
 // Configure mac address based on the alliance string.
 // On return, mac_address is populated with new address.
@@ -305,23 +305,13 @@ IPAddress select_client_ip(const char* alliance_string) {
   return IPAddress(10,0,1,last_octet);
 }
 
-void setup() {
-  pinMode(ALLIANCE_LIGHT_LOW_PIN, OUTPUT);
-  pinMode(ALLIANCE_LIGHT_HIGH_PIN, OUTPUT);
-  pinMode(COOPERTITION_LIGHT_PIN, OUTPUT);
+/// Connects to server via telnet
+void establishConnection() {
+  if (g_comms) {
+    delete g_comms;
+  }
 
-  pinMode(ALLIANCE_BUTTON, INPUT);
-  pinMode(COOPERTITION_BUTTON, INPUT);
-  pinMode(NOTE_SENSOR, INPUT);
-  pinMode(ALLIANCE_SELECTION_PIN, INPUT);
-  pinMode(MANUAL_SPEAKER_SCORING, INPUT);
-
-  digitalWrite(ALLIANCE_LIGHT_LOW_PIN, LOW);
-  digitalWrite(ALLIANCE_LIGHT_HIGH_PIN, LOW);
-  digitalWrite(COOPERTITION_LIGHT_PIN, LOW);
-
-
-  auto msg = digitalRead(ALLIANCE_SELECTION_PIN) == HIGH ? "BA\r\n" : "RA\r\n";
+  auto msg = digitalRead(ALLIANCE_SELECTION_PIN) == HIGH ? "HBA\r\n" : "HRA\r\n";
   byte mac[6];
 
   select_mac(msg, mac);
@@ -344,6 +334,27 @@ void setup() {
       delay(500);
     }
   }
+
+}
+
+void setup() {
+  pinMode(ALLIANCE_LIGHT_LOW_PIN, OUTPUT);
+  pinMode(ALLIANCE_LIGHT_HIGH_PIN, OUTPUT);
+  pinMode(COOPERTITION_LIGHT_PIN, OUTPUT);
+
+  pinMode(ALLIANCE_BUTTON, INPUT);
+  pinMode(COOPERTITION_BUTTON, INPUT);
+  pinMode(NOTE_SENSOR, INPUT);
+  pinMode(ALLIANCE_SELECTION_PIN, INPUT);
+  pinMode(MANUAL_SPEAKER_SCORING, INPUT);
+  pinMode(DEBUG_DROP_CONNECTION_PIN, INPUT);
+
+  digitalWrite(ALLIANCE_LIGHT_LOW_PIN, LOW);
+  digitalWrite(ALLIANCE_LIGHT_HIGH_PIN, LOW);
+  digitalWrite(COOPERTITION_LIGHT_PIN, LOW);
+
+  establishConnection();
+
 }
 
 /// returns 1 (high) or 0 (low) depending on the current time and the blink period
@@ -360,6 +371,10 @@ bool update_lit_state(char val) {
 
 void loop() {
   unsigned long current_time = millis();
+
+  if (!g_comms->connected()) {
+    establishConnection();
+  }
 
   // update light state
   digitalWrite(ALLIANCE_LIGHT_LOW_PIN, g_amp_state.low_light_lit);
