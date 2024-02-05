@@ -7,6 +7,7 @@ import time
 from frc_2024_field_server.game import actions
 from frc_2024_field_server.game.messages import Score, AmpButtonPressed, CoopertitionButtonPressed
 from frc_2024_field_server.game.state import GameState
+from frc_2024_field_server.game.modes import Mode
 from frc_2024_field_server.clients import Clients, ClientMessage
 from frc_2024_field_server.message_receiver import Alliance, FieldElement
 
@@ -21,7 +22,6 @@ async def process_messages(state: GameState, clients: Clients, msgs: list[Client
     for msg in msgs:
         logger.debug("Received message [alliance: %s, element: %s, message: %s]",
                     msg.alliance.name, msg.field_element.name, msg.message)
-
     if not state.game_active():
         return
 
@@ -94,7 +94,13 @@ async def game_loop(state: GameState, clients: Clients) -> None:
 
             await check_coopertition_update(state, clients)
 
+        prev_mode = state.current_mode
         state.check_mode_progression()
+
+        if prev_mode is Mode.TELEOP and state.current_mode is Mode.SETUP:
+            await actions.set_speaker_amp_display(state, clients, Alliance.BLUE, 0)
+            await actions.set_speaker_amp_display(state, clients, Alliance.RED, 0)
+
 
         await asyncio.sleep(MAIN_PERIOD_MSEC / 1000)
 

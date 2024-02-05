@@ -1,28 +1,6 @@
-/// Amp.ino
+/// common-net.ino
 ///
-/// Logic for controlling an Amp's lights, buttons, and IR sensor
-///
-/// From the FRC 2024 manual:
-/// -bottom light on: the ALLIANCE has 1 NOTE towards AMPLIFICATION (or Coopertition)
-/// − both lights on: the ALLIANCE has 2 NOTES toward AMPLIFICATION (1 of which can be used for
-/// Coopertition)
-/// − top light blinking at 2Hz: the SPEAKER is AMPLIFIED
-///
-/// The Coopertition light behavior and meaning are as follows:
-/// − blinking at 1 Hz: it’s AUTO or the initial 45 seconds of TELEOP and the ALLIANCE has not used a NOTE
-/// for Coopertition
-/// − solid on:
-///   o if initial 45 seconds of TELEOP, the HUMAN PLAYER has used a NOTE for Coopertition
-///   o if after the initial 45 seconds of TELEOP, both ALLIANCES have used a NOTE for Coopertition
-/// − off: the Coopertition window has expired, and Coopertition was not accomplished
-///
-/// == Setup ==
-/// Consult #defines in code below for what pin goes to what light and what switch.
-///
-/// When wiring buttons and switches, remember to put a 10k-ohm resistance
-/// between button and ground (to avoid shorting 5v to ground with no resistance).
-///
-/// For red alliance, pull pin 5 low. For blue alliance, pull pin 5 high
+/// Common network logic
 ///
 /// == Serial protocol ==
 /// - every message ends with \r\n
@@ -44,25 +22,11 @@
 
 #include <Ethernet.h>
 
-#define ALLIANCE_LIGHT_LOW_PIN 12
-#define ALLIANCE_LIGHT_HIGH_PIN 11
-#define COOPERTITION_LIGHT_PIN 9
-
-#define ALLIANCE_BUTTON 10
-#define COOPERTITION_BUTTON 8
-#define NOTE_SENSOR 6
-#define ALLIANCE_SELECTION_PIN 5
-#define MANUAL_SPEAKER_SCORING 4
-#define DEBUG_DROP_CONNECTION_PIN 3
-
-#define ALLIANCE_LIGHT_BLINK_PERIOD_MSEC 500
-#define COOPERTITION_LIGHT_BLINK_PERIOD_MSEC 1000
-#define DEBOUNCE_MSEC 5
-
-#define COOPERTITION_EXPIRATION_MSEC (5 * 1000)
-
 /// Remote connection configs
 
+#define USE_ETHERNET 0  // if 1, use Ethernet; otherwise, use serial debugger
+
+#define DEBUG_DROP_CONNECTION_PIN 3
 
 const IPAddress field_server_ip(10,0,1,1);
 const int server_port = 8008;
@@ -94,7 +58,7 @@ public:
   }
 };
 
-#if 0  // 1 = Ethernet, 0 = Serial fake
+#if USE_ETHERNET
 
 class EthernetComms {
   private:
@@ -206,54 +170,6 @@ using Comms = SerialComms;
 
 # endif // select Ethernet or serial fake
 
-
-
-
-class DebouncingMomentary {
-  bool m_past_state;
-  unsigned long m_debounce_deadline_msec;
-
-public:
-  DebouncingMomentary(): m_past_state(false), m_debounce_deadline_msec(0) {}
-
-  // Given the current time and the current (sensed) toggle state, returns what the state should be
-  int update_state(unsigned long current_time_msec, int current_state) {
-    if (m_debounce_deadline_msec > 0) {
-      if (current_time_msec < m_debounce_deadline_msec) {
-        return LOW;
-      }
-      m_debounce_deadline_msec = 0;
-      m_past_state = current_state;
-      return LOW;
-    }
-
-    if (current_state != m_past_state) {
-      m_past_state = current_state;
-      m_debounce_deadline_msec = current_time_msec + DEBOUNCE_MSEC;
-      return current_state;
-    }
-
-    return LOW;
-  }
-};
-
-struct AmpState {
-  bool low_light_lit;         // if true, low light should be lit
-  bool high_light_lit;        // if true, high light should be lit
-  bool alliance_light_blink;  // if true, alliance light should be blinking
-
-  bool coopertition_light_lit;       // if true, coopertition light should be lit
-  bool coopertition_light_blink;  // if true, coopertition light should be blinking
-
-  DebouncingMomentary alliance_button;
-  DebouncingMomentary coopertition_button;
-  DebouncingMomentary note_sensor;
-  DebouncingMomentary manual_speaker_score;
-};
-
-AmpState g_amp_state = {false, false, false ,false, false,
-  DebouncingMomentary(), DebouncingMomentary(), DebouncingMomentary()};
-
 Comms* g_comms = nullptr;
 
 // Configure mac address based on the alliance string.
@@ -306,9 +222,13 @@ IPAddress select_client_ip(const char* alliance_string) {
 }
 
 /// Connects to server via telnet
-void establishConnection() {
+/// msg: the signal to send to the server, one of
+/// - HBA\r\n: "Hello, blue amp"
+/// - HRA\r\n: "Hello, red amp"
+/// - HBS\r\n: "Hello, blue speaker"
+/// - HRS\r\n: "Hello, red speaker"
+void establishConnection(char* msg) {
 
-  auto msg = digitalRead(ALLIANCE_SELECTION_PIN) == HIGH ? "HBA\r\n" : "HRA\r\n";
   byte mac[6];
 
   select_mac(msg, mac);
@@ -331,8 +251,111 @@ void establishConnection() {
       return;
     }
   }
-
 }
+/// debouncing-momentary.ino
+///
+/// A momentary connector that only returns HIGH on low-to-high edge detection
+/// and ignores subsequent contacts within the debounce period.
+
+#define DEBOUNCE_MSEC 5
+
+class DebouncingMomentary {
+  bool m_past_state;
+  unsigned long m_debounce_deadline_msec;
+
+public:
+  DebouncingMomentary(): m_past_state(false), m_debounce_deadline_msec(0) {}
+
+  // Given the current time and the current (sensed) toggle state, returns what the state should be
+  int update_state(unsigned long current_time_msec, int current_state) {
+    if (m_debounce_deadline_msec > 0) {
+      if (current_time_msec < m_debounce_deadline_msec) {
+        return LOW;
+      }
+      m_debounce_deadline_msec = 0;
+      m_past_state = current_state;
+      return LOW;
+    }
+
+    if (current_state != m_past_state) {
+      m_past_state = current_state;
+      m_debounce_deadline_msec = current_time_msec + DEBOUNCE_MSEC;
+      return current_state;
+    }
+
+    return LOW;
+  }
+};
+/// amp.ino
+///
+/// Logic for controlling an Amp's lights, buttons, and IR sensor
+///
+/// From the FRC 2024 manual:
+/// -bottom light on: the ALLIANCE has 1 NOTE towards AMPLIFICATION (or Coopertition)
+/// − both lights on: the ALLIANCE has 2 NOTES toward AMPLIFICATION (1 of which can be used for
+/// Coopertition)
+/// − top light blinking at 2Hz: the SPEAKER is AMPLIFIED
+///
+/// The Coopertition light behavior and meaning are as follows:
+/// − blinking at 1 Hz: it’s AUTO or the initial 45 seconds of TELEOP and the ALLIANCE has not used a NOTE
+/// for Coopertition
+/// − solid on:
+///   o if initial 45 seconds of TELEOP, the HUMAN PLAYER has used a NOTE for Coopertition
+///   o if after the initial 45 seconds of TELEOP, both ALLIANCES have used a NOTE for Coopertition
+/// − off: the Coopertition window has expired, and Coopertition was not accomplished
+///
+/// == Setup ==
+/// Consult #defines in code below for what pin goes to what light and what switch.
+///
+/// When wiring buttons and switches, remember to put a 10k-ohm resistance
+/// between button and ground (to avoid shorting 5v to ground with no resistance).
+///
+/// For red alliance, pull pin 5 low. For blue alliance, pull pin 5 high
+///
+/// == Serial protocol ==
+/// - every message ends with \r\n
+///
+/// = outbound to server
+/// - A: alliance button pressed
+/// - C: coopertition button pressed
+/// - R: Ring sensor tripped
+///
+/// = inbound from server
+/// - L0, L1: alliance low light off or on
+/// - H0, H1, HB: alliance high light off, on, blink
+/// - C0, C1, CB: coopertition high light off, on, blink
+
+#define ALLIANCE_LIGHT_LOW_PIN 12
+#define ALLIANCE_LIGHT_HIGH_PIN 11
+#define COOPERTITION_LIGHT_PIN 9
+
+#define ALLIANCE_BUTTON 10
+#define COOPERTITION_BUTTON 8
+#define NOTE_SENSOR 6
+#define ALLIANCE_SELECTION_PIN 5
+#define MANUAL_SPEAKER_SCORING 4
+
+#define ALLIANCE_LIGHT_BLINK_PERIOD_MSEC 500
+#define COOPERTITION_LIGHT_BLINK_PERIOD_MSEC 1000
+
+#define COOPERTITION_EXPIRATION_MSEC (5 * 1000)
+
+struct AmpState {
+  bool low_light_lit;         // if true, low light should be lit
+  bool high_light_lit;        // if true, high light should be lit
+  bool alliance_light_blink;  // if true, alliance light should be blinking
+
+  bool coopertition_light_lit;       // if true, coopertition light should be lit
+  bool coopertition_light_blink;  // if true, coopertition light should be blinking
+
+  DebouncingMomentary alliance_button;
+  DebouncingMomentary coopertition_button;
+  DebouncingMomentary note_sensor;
+  DebouncingMomentary manual_speaker_score;
+};
+
+AmpState g_amp_state = {false, false, false ,false, false,
+  DebouncingMomentary(), DebouncingMomentary(), DebouncingMomentary()};
 
 void setup() {
   pinMode(ALLIANCE_LIGHT_LOW_PIN, OUTPUT);
@@ -350,7 +373,7 @@ void setup() {
   digitalWrite(ALLIANCE_LIGHT_HIGH_PIN, LOW);
   digitalWrite(COOPERTITION_LIGHT_PIN, LOW);
 
-  establishConnection();
+  establishConnection(digitalRead(ALLIANCE_SELECTION_PIN) == HIGH ? "HBA\r\n" : "HRA\r\n");
 
 }
 
@@ -370,7 +393,7 @@ void loop() {
   unsigned long current_time = millis();
 
   if (!g_comms->connected()) {
-    establishConnection();
+    establishConnection(digitalRead(ALLIANCE_SELECTION_PIN) == HIGH ? "HBA\r\n" : "HRA\r\n");
   }
 
   // update light state

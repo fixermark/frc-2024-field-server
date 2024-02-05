@@ -34,6 +34,7 @@ class Clients(Receiver):
             if not inp:
                 writer.write("NO\r\n")
                 await writer.drain()
+                writer.close()
                 return
 
             alliance, element = self._decode_field_element_id(inp)

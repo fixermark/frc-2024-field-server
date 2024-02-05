@@ -26,6 +26,7 @@ The default network configuration is as follows:
   * [X] Prototype reconnection logic for comms (can simulate with serial by having a pushbutton drop connection). <2024-02-03 Sat>
 	- reconnect also handles bad handshake from server
   * [X] modify protocol: both amp and speaker can send 'ring speaker' and 'ring amp' score singals (override for manual scoring) <2024-01-27 Sat>
+  * [X] Make infrastructure to stitch ino pieces together into one file <2024-02-04 Sun>
 * Amp client
 * Speaker client
   * [ ] get some details on how the LED chaser strip is controlled.
@@ -53,9 +54,9 @@ The default network configuration is as follows:
 	* [X] Coopertition Mode <2024-02-01 Thu>
 	  - triggerable if one note banked and within timeframe (and not already triggered)
 	  - activates joint decision if both offer
-	* [ ] At match start, init amp and speaker client state and game state
-	* [ ] At match end, clear amp timer display from speaker clients
-	* [ ] After NO on a client, server should *close* connection.
+	* [X] At match start, init amp and speaker client state and game state
+	* [X] At match end, clear amp timer display from speaker clients <2024-02-04 Sun>
+	* [X] After NO on a client, server should *close* connection. <2024-02-04 Sun>
   * UI
     - tkinter is pretty close to built-in, we'll use that.
     * [X] Connection status indicators for telnet clients <2024-01-27 Sat>
