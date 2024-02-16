@@ -1,4 +1,4 @@
-/// common-net.ino
+/// Common-net.ino
 ///
 /// Common network logic
 ///
@@ -24,7 +24,7 @@
 
 /// Remote connection configs
 
-#define USE_ETHERNET 0  // if 1, use Ethernet; otherwise, use serial debugger
+#define USE_ETHERNET 1  // if 1, use Ethernet; otherwise, use serial debugger
 
 #define DEBUG_DROP_CONNECTION_PIN 3
 
@@ -43,7 +43,8 @@ public:
   // If the byte is a newline, return the pointer to the buffer and reset the input cursor.
   // Otherwise, return nullptr.
   char* input(byte in) {
-    if (in == -1) {
+    // in addition to empty inputs, we discard Telnet control codes 0xfd and 0x18
+    if (in == -1 || in == 0xfd || in == 0x18) {
       return nullptr;
     }
     m_buffer[m_cursor] = in;
@@ -75,7 +76,7 @@ class EthernetComms {
       const IPAddress& field_server_ip,
       const int port):
       m_buffer(), m_client(), m_field_server_ip(field_server_ip), m_port(port), m_connected(false) {
-        Ethernet.begin(mac, my_ip);
+      Ethernet.begin((uint8_t*)mac, my_ip);
       }
 
 
@@ -95,7 +96,7 @@ class EthernetComms {
       return nullptr;
     }
 
-    void write(char* out) {
+    void write(const char* out) {
 
       for (size_t cursor = 0; out[cursor] != '\0' && cursor < 80; ++cursor) {
         m_client.write(out[cursor]);
@@ -153,7 +154,7 @@ public:
   }
 
   // Write out a null-terminated string to serial comms
-  void write(char* out) {
+  void write(const char* out) {
     for (size_t cursor = 0; out[cursor] != '\0' && cursor < 80; ++cursor) {
       Serial.write(out[cursor]);
     }
@@ -169,6 +170,12 @@ public:
 using Comms = SerialComms;
 
 # endif // select Ethernet or serial fake
+
+void debug_msg(const char* msg) {
+#if USE_ETHERNET
+  Serial.println(msg);
+#endif
+}
 
 Comms* g_comms = nullptr;
 
@@ -227,7 +234,7 @@ IPAddress select_client_ip(const char* alliance_string) {
 /// - HRA\r\n: "Hello, red amp"
 /// - HBS\r\n: "Hello, blue speaker"
 /// - HRS\r\n: "Hello, red speaker"
-void establishConnection(char* msg) {
+void establishConnection(const char* msg) {
 
   byte mac[6];
 
@@ -240,14 +247,20 @@ void establishConnection(char* msg) {
     }
 
     g_comms = new Comms(mac, my_ip, field_server_ip, server_port);
+    if (!g_comms->connect()) {
+      debug_msg("Unable to connect; retrying.");
+      continue;
+    }
     g_comms->write(msg);
 
     char* input = g_comms->input();
     // Wait for response from server
     for (; input == nullptr; input=g_comms->input()) {
+      debug_msg("Awaiting input...");
       delay(500);
     }
     if (input[0] == 'O' && input[1] == 'K') {
+      debug_msg("Connected!");
       return;
     }
   }

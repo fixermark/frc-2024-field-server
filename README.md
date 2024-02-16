@@ -1,16 +1,26 @@
 # FRC 2024 field logic server
 
 # Requirements
+* Python
+* poetry for Python. In Ubuntu, this can be installed by
+  `sudo apt-get install python3-poetry`
 * Tk (for field server user interface). In Ubuntu, this can be installed by
   `sudo apt-get install python3-tk`
+* Arduino (to install sketches onto Arduinos)
 
 # Setup
+* `poetry install` to pull in all Python dependencies via Poetry.
+
 **TODO**
+
+# Using
+* To execute the server, run `make run`. The server will start up and listen for
+  connections from the Arduino clients via Telnet.
 
 ## Network
 
 The default network configuration is as follows:
-* Field server: IP 10.0.1.1
+* Field server: IP 10.0.1.1, port 8008
 
 |         | Amp        | Speaker    |
 |---------|------------|------------|
@@ -28,6 +38,7 @@ The default network configuration is as follows:
   * [X] modify protocol: both amp and speaker can send 'ring speaker' and 'ring amp' score singals (override for manual scoring) <2024-01-27 Sat>
   * [X] Make infrastructure to stitch ino pieces together into one file <2024-02-04 Sun>
 * Amp client
+  * hardware: use analog in for digital inputs, do not use pins 4, 10, 11, 12, 13 for anything (Ethernet shield interferes)
 * Speaker client
   * [ ] get some details on how the LED chaser strip is controlled.
 	- neopixel
@@ -70,3 +81,7 @@ The default network configuration is as follows:
 
 # Notes
 - amp prototype is hosted at https://wokwi.com/projects/387770973202227201
+
+# Useful links
+* Communicating with Arduino using Linux serial: https://arduino.stackexchange.com/questions/79058/access-serial-monitor-on-linux-cli-using-arduino-cli
+* Using the Arduino CLI tools: https://vid.bina.me/tools/arduino/arduino-on-nixos/

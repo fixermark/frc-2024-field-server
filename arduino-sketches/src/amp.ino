@@ -37,15 +37,16 @@
 /// - H0, H1, HB: alliance high light off, on, blink
 /// - C0, C1, CB: coopertition high light off, on, blink
 
-#define ALLIANCE_LIGHT_LOW_PIN 12
-#define ALLIANCE_LIGHT_HIGH_PIN 11
-#define COOPERTITION_LIGHT_PIN 9
+#define IS_RED_ALLIANCE true
 
-#define ALLIANCE_BUTTON 10
+#define ALLIANCE_LIGHT_LOW_PIN 2
+#define ALLIANCE_LIGHT_HIGH_PIN 3
+#define COOPERTITION_LIGHT_PIN 5
+
+#define ALLIANCE_BUTTON 9
 #define COOPERTITION_BUTTON 8
-#define NOTE_SENSOR 6
-#define ALLIANCE_SELECTION_PIN 5
-#define MANUAL_SPEAKER_SCORING 4
+#define NOTE_SENSOR 7
+#define MANUAL_SPEAKER_SCORING 6
 
 #define ALLIANCE_LIGHT_BLINK_PERIOD_MSEC 500
 #define COOPERTITION_LIGHT_BLINK_PERIOD_MSEC 1000
@@ -70,6 +71,9 @@ AmpState g_amp_state = {false, false, false ,false, false,
   DebouncingMomentary(), DebouncingMomentary(), DebouncingMomentary()};
 
 void setup() {
+#if USE_ETHERNET
+  Serial.begin(9600);
+#endif
   pinMode(ALLIANCE_LIGHT_LOW_PIN, OUTPUT);
   pinMode(ALLIANCE_LIGHT_HIGH_PIN, OUTPUT);
   pinMode(COOPERTITION_LIGHT_PIN, OUTPUT);
@@ -77,15 +81,14 @@ void setup() {
   pinMode(ALLIANCE_BUTTON, INPUT);
   pinMode(COOPERTITION_BUTTON, INPUT);
   pinMode(NOTE_SENSOR, INPUT);
-  pinMode(ALLIANCE_SELECTION_PIN, INPUT);
   pinMode(MANUAL_SPEAKER_SCORING, INPUT);
-  pinMode(DEBUG_DROP_CONNECTION_PIN, INPUT);
+  // pinMode(DEBUG_DROP_CONNECTION_PIN, INPUT);
 
   digitalWrite(ALLIANCE_LIGHT_LOW_PIN, LOW);
   digitalWrite(ALLIANCE_LIGHT_HIGH_PIN, LOW);
   digitalWrite(COOPERTITION_LIGHT_PIN, LOW);
 
-  establishConnection(digitalRead(ALLIANCE_SELECTION_PIN) == HIGH ? "HBA\r\n" : "HRA\r\n");
+  establishConnection(IS_RED_ALLIANCE ? "HRA\r\n" : "HBA\r\n");
 
 }
 
@@ -105,7 +108,7 @@ void loop() {
   unsigned long current_time = millis();
 
   if (!g_comms->connected()) {
-    establishConnection(digitalRead(ALLIANCE_SELECTION_PIN) == HIGH ? "HBA\r\n" : "HRA\r\n");
+    establishConnection(IS_RED_ALLIANCE ? "HRA\r\n" : "HBA\r\n");
   }
 
   // update light state
