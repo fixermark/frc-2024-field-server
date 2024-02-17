@@ -27,8 +27,7 @@ async def update_amp_status_light(state: GameState, clients: Clients, alliance: 
     alliance_state = state.alliances[alliance]
 
     low_light_message = "L1" if alliance_state.banked_notes >=1 else "L0"
-    if alliance_state.banked_notes >= 1:
-        await clients.output(alliance, FieldElement.AMP, low_light_message)
+    await clients.output(alliance, FieldElement.AMP, low_light_message)
 
     if alliance_state.amp_end_ns != 0:
         await clients.output(alliance, FieldElement.AMP, "HB")

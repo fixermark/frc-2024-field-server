@@ -114,6 +114,7 @@ class Clients(Receiver):
           message: Message to send, *without* \\r\\n suffix.
         """
 
+        print(f'Sending {message}')
         client = self.clients[alliance][element]
         if client is None:
             logger.error("Unable to send %s to %s, %s: no client connected.", message, alliance, element)
