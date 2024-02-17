@@ -1,10 +1,17 @@
 /// speaker.ino
 ///
 /// Logic for controlling the speaker lights (NeoPixel strip)
+///
+///
+/// == Setup ==
+/// Consult #defines in code below for what pin goes to what light and what switch.
+///
+/// When wiring NeoPixel, make sure to put a 470-ohm resistor between the control pin and
+/// the pixel input.
 
 #include <Adafruit_NeoPixel.h>
 #define NEOPIXEL_CONTROL_PIN 8
-#define NUM_NEOPIXELS 10
+#define NUM_NEOPIXELS 20
 
 struct SpeakerState {
   int amp_level;
@@ -30,9 +37,11 @@ void loop() {
     establishConnection(RED_ALLIANCE ? "HBS\r\n" : "HRS\r\n");
   }
 
+  int lit_pixels = g_speaker_state.amp_level * NUM_NEOPIXELS / 10;
+
   // update light state
   for(int i=0; i < NUM_NEOPIXELS; ++i) {
-    g_neo_pixel.setPixelColor(i, g_speaker_state.amp_level > i ? g_on_color : g_off_color);
+    g_neo_pixel.setPixelColor(i, lit_pixels > i ? g_on_color : g_off_color);
   }
   g_neo_pixel.show();
 

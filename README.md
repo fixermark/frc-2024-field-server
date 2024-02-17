@@ -40,9 +40,9 @@ The default network configuration is as follows:
 * Amp client
   * hardware: use analog in for digital inputs, do not use pins 4, 10, 11, 12, 13 for anything (Ethernet shield interferes)
 * Speaker client
-  * [ ] get some details on how the LED chaser strip is controlled.
+  * [X] get some details on how the LED chaser strip is controlled.
 	- neopixel
-  * [ ] implement
+  * [X] implement
 * Server
   * [X] Client init logic: when new client connects, send initial config by querying state <2024-02-03 Sat>
   * [X] handle dropped clients <2024-02-03 Sat>
@@ -53,7 +53,7 @@ The default network configuration is as follows:
   * [ ] Rings that score within last three secs after amp mode should count amp score
   * [X] Rings that score within last three secs after match end should be counted <2024-01-28 Sun>
 	- currently works for arbitrary time after auto and teleop end
-  * [ ] Business logic for game score control
+  * [X] Business logic for game score control
 	* [X] Amp points (teleop) <2024-01-28 Sun>
     * [X] Speaker points (teleop, no amp) <2024-01-28 Sun>
     * [X] Amp points (auto) <2024-01-28 Sun>
@@ -81,6 +81,7 @@ The default network configuration is as follows:
 
 # Notes
 - amp prototype is hosted at https://wokwi.com/projects/387770973202227201
+- speaker prototype is hosted at https://wokwi.com/projects/389937545911007233
 
 # Useful links
 * Communicating with Arduino using Linux serial: https://arduino.stackexchange.com/questions/79058/access-serial-monitor-on-linux-cli-using-arduino-cli
